@@ -3,13 +3,14 @@
 #include <chrono>
 #include <thread>
 #include <memory>
+#include <mutex>
 
 using namespace std;
+
 const int MaxCount = 150000;
 const int ThreadCount = 4;
 
-bool IsPrimeNumber(int number) 
-{
+bool IsPrimeNumber(int number) {
     if (number == 1) 
         return false;
     if (number == 2 || number == 3) 
@@ -21,19 +22,19 @@ bool IsPrimeNumber(int number)
     return true;
 }
 
-void PrintNumbers(const vector<int>& primes) 
-{
+void PrintNumbers(const vector<int>& primes) {
     for (int v : primes) {
         cout << v << endl;
     }
 }
 
-int main() 
-{
+int main() {
     int num = 1;
+    recursive_mutex num_mutex;
     vector<int> primes;
+    recursive_mutex primes_mutex;
 
-    auto start_time = chrono::system_clock::now();
+    chrono::system_clock::time_point start_time = chrono::system_clock::now();
 
     vector<shared_ptr<thread> > threads;
 
@@ -41,27 +42,30 @@ int main()
         shared_ptr<thread> thread(new thread([&]() {
             while (true) {
                 int n;
-                n = num;
-                num++;
-
+                {
+                    lock_guard<recursive_mutex> num_lock(num_mutex);
+                    n = num;
+                    num++;
+                }
                 if (n >= MaxCount)
                     break;
 
                 if (IsPrimeNumber(n)) {
+                    lock_guard<recursive_mutex> primes_mutex(primes_mutex);
                     primes.push_back(n);
                 }
             }
         }));
         threads.push_back(thread);
     }
-    for (auto thread : threads)
-    {
+
+    for (auto thread : threads) {
         thread->join();
     }
 
-    auto end_time = chrono::system_clock::now();
+    chrono::system_clock::time_point end_time = chrono::system_clock::now();
 
-    auto duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
+    long long duration = chrono::duration_cast<chrono::milliseconds>(end_time - start_time).count();
     cout << "Took" << duration << " milliseconds." << endl;
 
     // PrintNumbers(primes);
