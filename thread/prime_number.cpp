@@ -39,7 +39,7 @@ int main() {
     vector<shared_ptr<thread> > threads;
 
     for (int i = 0; i < ThreadCount; i++) {
-        shared_ptr<thread> thread(new thread([&]() {
+        shared_ptr<thread> t(new thread([&]() {
             while (true) {
                 int n;
                 {
@@ -56,11 +56,11 @@ int main() {
                 }
             }
         }));
-        threads.push_back(thread);
+        threads.push_back(t);
     }
 
-    for (auto thread : threads) {
-        thread->join();
+    for (shared_ptr<thread> t : threads) {
+        t->join();
     }
 
     chrono::system_clock::time_point end_time = chrono::system_clock::now();
